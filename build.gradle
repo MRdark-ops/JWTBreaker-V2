@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+    // Maintained successor of com.github.johnrengelman.shadow (which fails on
+    // Java 21+). Provides the same `shadowJar` task to build a fat jar.
+    id 'com.gradleup.shadow' version '8.3.6'
+}
+
+group = 'com.jwtbreaker'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+// Bundle the weak-secret wordlist into the jar so brute-force works at runtime.
+processResources {
+    from('secrets.txt')
+}
+
+// Target Java 17 bytecode. Uses --release so it works even when only a newer
+// JDK (e.g. 23) is installed.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}
+
+dependencies {
+    // Burp Suite Montoya API (provided by Burp at runtime)
+    compileOnly 'net.portswigger.burp.extensions:montoya-api:2024.11'
+
+    // JWT handling
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // JSON pretty printing
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+}
+
+// Build a single self-contained jar: build/libs/JWTBreaker-all.jar
+shadowJar {
+    archiveBaseName = 'JWTBreaker'
+    archiveClassifier = 'all'
+    archiveVersion = ''
+}
